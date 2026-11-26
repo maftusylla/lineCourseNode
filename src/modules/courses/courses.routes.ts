@@ -8,6 +8,11 @@ import {createCourseSchema,listCoursesSchema,updateCourseSchema,courseIdSchema,}
 
 export const coursesRouter = Router()
 
+coursesRouter.get(
+  '/public',
+  validateQuery(listCoursesSchema),
+  asyncHandler(CourseController.publicIndex),
+)
 coursesRouter.use(authenticate, requireVerifiedEmail)
 
 coursesRouter.get(

@@ -325,7 +325,7 @@ module.exports = {
       { learner: learner2, course: 0 },
       { learner: learner2, course: 2 },
       { learner: learner3, course: 1 },
-      { learner3: learner3, course: 2 },
+      { learner: learner3, course: 2 },
       { learner: learner4, course: 0 },
     ]
 

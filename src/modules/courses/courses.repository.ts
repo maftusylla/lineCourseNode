@@ -1,6 +1,9 @@
 
 import type { UserRole } from '../users/user.model.js'
 import { Course } from './courses.model.js'
+import { Module } from '../modules/modules.model.js'
+import { Lesson } from '../lessons/lessons.model.js'
+
 import { Op, type WhereOptions } from 'sequelize'
 
 export interface CreateCoursesRecord {
@@ -21,8 +24,8 @@ export interface UpdateCourseRecord {
 export interface ListCoursesInput {
   page: number
   perPage: number
-  role: UserRole
-  userId: string
+  role?: UserRole
+  userId?: string
 }
 
 export interface ICourseRepository {
@@ -56,11 +59,11 @@ export class CourseRepository implements ICourseRepository {
   }
 
   async list(input: ListCoursesInput): Promise<{ rows: Course[]; count: number }> {
-    let where: WhereOptions = {}
+    let where: WhereOptions = {status:'published'}
 
-    if (input.role === 'learner') {
-      where = { status: 'published' }
-    }
+    if (input.role === 'admin') {
+      where = {}
+  }
 
     if (input.role === 'teacher') {
       where = {
@@ -76,6 +79,19 @@ export class CourseRepository implements ICourseRepository {
       limit: input.perPage,
       offset: (input.page - 1) * input.perPage,
       order: [['createdAt', 'DESC']],
+      include: [
+      {
+        model: Module,
+        as: 'modules',
+        include: [
+          {
+            model: Lesson,
+            as: 'lessons',
+          },
+        ],
+      },
+    ],
+    distinct: true,
     })
   }
 }

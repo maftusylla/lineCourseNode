@@ -1,5 +1,5 @@
 
-import type { Request, Response } from 'express'
+import { response, type Request, type Response } from 'express'
 import { sendSuccess } from '../../shared/api-response.js'
 import { CourseService } from './courses.services.js'
 
@@ -9,6 +9,7 @@ function getCourseId(request: Request): string {
   const params = request.validated?.params as { id: string }
   return params.id
 }
+
 
 export const CourseController = {
   async create(request: Request, response: Response) {
@@ -85,4 +86,17 @@ export const CourseController = {
 
     return sendSuccess(response, course)
   },
+  async publicIndex(request: Request,response: Response) {
+  const query =request.validated?.query as {
+    page:number
+    per_page:number
+  }
+
+  const result = await service.list({
+    page: query.page,
+    perPage: query.per_page,
+  })
+    return sendSuccess(response, result.courses, 200, result.pagination)
+  
+}
 }

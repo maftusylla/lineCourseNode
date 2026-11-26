@@ -29,3 +29,4 @@ export const updateCourseSchema = z.object({
 export const courseIdSchema = z.object({
   id: z.uuid({ error: 'Identifiant du cours invalide.' }),
 })
+
