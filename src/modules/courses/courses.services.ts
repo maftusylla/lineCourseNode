@@ -27,6 +27,7 @@ export class CourseService {
     return this.courses.create({
       titre: input.titre,
       description: input.description,
+      imageUrl: input.imageUrl,
       userId,
     })
   }

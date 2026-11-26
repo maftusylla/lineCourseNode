@@ -14,6 +14,7 @@ export class Course extends Model<InferAttributes<Course>,InferCreationAttribute
   declare createdAt: CreationOptional<Date>
   declare updatedAt: CreationOptional<Date>
   declare deletedAt: CreationOptional<Date | null>
+  declare imageUrl: string | null
 
   static initModel(sequelize: Sequelize): typeof Course {
     Course.init(
@@ -52,6 +53,11 @@ export class Course extends Model<InferAttributes<Course>,InferCreationAttribute
           type: DataTypes.DATE,
           allowNull: true,
         },
+        imageUrl:{
+          type:DataTypes.STRING(500),
+          allowNull:true,
+          field:'image_url'
+        }
       },
       {
         sequelize,

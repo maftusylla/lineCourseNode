@@ -6,12 +6,16 @@ import { Op, type WhereOptions } from 'sequelize'
 export interface CreateCoursesRecord {
   titre: string
   description: string
+  imageUrl?:string | null
   userId: string
 }
 
 export interface UpdateCourseRecord {
   titre?: string
   description?: string
+  imageUrl?:string | null
+
+
 }
 
 export interface ListCoursesInput {

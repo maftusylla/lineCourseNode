@@ -8,7 +8,8 @@ export const createCourseSchema=z.object({
     description: z
         .string()
         .min(1,'la description est obligatoire')
-        .max(1000,'La description ne doit pas dépasser 1000 caractères')
+        .max(1000,'La description ne doit pas dépasser 1000 caractères'),
+    imageUrl:z.string().url('URL d image invalide').optional().nullable()
 })
 export const listCoursesSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -18,8 +19,10 @@ export const listCoursesSchema = z.object({
 export const updateCourseSchema = z.object({
   titre: z.string().min(1).max(120).optional(),
   description: z.string().min(1).max(1000).optional(),
+  imageUrl: z.string().url('URL de l’image invalide').optional().nullable(),
+
 }).refine(
-  (data) => data.titre !== undefined || data.description !== undefined,
+  (data) => data.titre !== undefined || data.description !== undefined || data.imageUrl !== undefined,
   { message: 'Au moins un champ doit être renseigné.' },
 )
 

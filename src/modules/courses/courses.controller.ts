@@ -15,6 +15,7 @@ export const CourseController = {
     const input = request.validated?.body as {
       titre: string
       description: string
+      imageUrl?:string | null
     }
 
     const course = await service.create(request.auth!.userId, input)
@@ -52,6 +53,7 @@ export const CourseController = {
     const input = request.validated?.body as {
       titre?: string
       description?: string
+      imageUrl?:string | null
     }
 
     const course = await service.update(
