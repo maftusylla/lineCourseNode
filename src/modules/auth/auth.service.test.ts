@@ -31,7 +31,7 @@ describe('AuthService', () => {
   })
 
   async function register(email = 'awa@example.com') {
-    return service.register(
+    const registration = await service.register(
       registerSchema.parse({
         name: 'Awa Ndiaye',
         email,
@@ -40,10 +40,23 @@ describe('AuthService', () => {
       }),
       context,
     )
+    const session = await service.login(
+      { email: registration.user.email, password: 'Secret123!' },
+      context,
+    )
+    return { ...registration, ...session }
   }
 
-  it('inscrit toujours un learner, hache le mot de passe et envoie une vérification', async () => {
-    const result = await register('  AWA@EXAMPLE.COM ')
+  it('inscrit un learner sans ouvrir de session et envoie une vérification', async () => {
+    const result = await service.register(
+      registerSchema.parse({
+        name: 'Awa Ndiaye',
+        email: '  AWA@EXAMPLE.COM ',
+        password: 'Secret123!',
+        password_confirmation: 'Secret123!',
+      }),
+      context,
+    )
     const user = await users.findByEmail('awa@example.com')
 
     expect(result.user).toMatchObject({
@@ -51,8 +64,10 @@ describe('AuthService', () => {
       role: 'learner',
       email_verified: false,
     })
-    expect(result.access_token).toBeTruthy()
-    expect(result.refresh_token).toBeTruthy()
+    expect(result.verification_required).toBe(true)
+    expect(result).not.toHaveProperty('access_token')
+    expect(result).not.toHaveProperty('refresh_token')
+    expect(await sessions.listActiveByUser(result.user.id)).toHaveLength(0)
     expect(user?.passwordHash).not.toBe('Secret123!')
     await expect(verifyPassword('Secret123!', user!.passwordHash)).resolves.toBe(true)
     expect(mail.verifications).toHaveLength(1)

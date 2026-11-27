@@ -66,6 +66,16 @@ AUTH_EXPOSE_DEBUG_TOKENS=true ajoute les tokens à la réponse en développement
 - un ancien refresh token réutilisé révoque sa famille.
 - context_hash lie chaque token de vérification ou de reset à l’état visé du compte.
 
+## Session navigateur
+
+- L’inscription crée le compte et envoie un lien de vérification, mais ne crée ni session ni cookie.
+- Après connexion, l’API renvoie l’access token dans le JSON et le refresh token dans un cookie HttpOnly.
+- Comme le cookie est HttpOnly, React ne peut pas le lire : au démarrage, appeler `POST /api/auth/refresh` avec `credentials: 'include'` ; un refus signifie qu’aucune session ne peut être restaurée.
+- `POST /api/auth/refresh` renouvelle la session à partir du cookie, sans token dans le corps.
+- `POST /api/auth/logout` révoque cette session et supprime le cookie.
+- Le frontend doit envoyer les requêtes avec `credentials: 'include'` et conserver l’access token uniquement en mémoire.
+- `FRONTEND_URL` définit l’origine autorisée par CORS. En production, configurez `AUTH_COOKIE_SECURE=true` ; utilisez `AUTH_COOKIE_SAME_SITE=none` si frontend et API sont sur des sites différents.
+
 ## Déploiement
 
 ~~~bash

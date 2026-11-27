@@ -53,12 +53,22 @@ const envSchema = z.object({
   AUTH_EXPOSE_DEBUG_TOKENS: booleanString,
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(600),
+  AUTH_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  AUTH_COOKIE_SECURE: booleanString,
 })
 
 const parsed = envSchema.safeParse(process.env)
 if (!parsed.success) {
   console.error('Configuration invalide :', z.treeifyError(parsed.error))
   throw new Error('Les variables d’environnement sont invalides.')
+}
+if (
+  parsed.data.AUTH_COOKIE_SAME_SITE === 'none' &&
+  !parsed.data.AUTH_COOKIE_SECURE
+) {
+  throw new Error(
+    'AUTH_COOKIE_SECURE doit être true lorsque SameSite=none.',
+  )
 }
 
 export const env = parsed.data
@@ -82,5 +92,10 @@ export function assertSafeProductionConfiguration(): void {
   }
   if (env.MAIL_DRIVER !== 'smtp') {
     throw new Error('MAIL_DRIVER=smtp est obligatoire en production.')
+  }
+  if (!env.AUTH_COOKIE_SECURE) {
+    throw new Error(
+      'AUTH_COOKIE_SECURE doit être true en production.',
+    )
   }
 }

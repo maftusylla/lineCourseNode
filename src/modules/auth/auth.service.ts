@@ -86,12 +86,10 @@ export class AuthService {
       user.email,
     )
     await this.mail.sendEmailVerification(user, verificationToken)
-    const tokens = await this.issueTokens(user, context)
     await this.recordAudit('auth.registered', 'success', user.id, user.email, context)
 
     return {
       user: user.toSafeJSON(),
-      ...tokens,
       verification_required: true,
       message: 'Consultez votre messagerie pour vérifier votre adresse.',
       ...(env.AUTH_EXPOSE_DEBUG_TOKENS

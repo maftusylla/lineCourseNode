@@ -8,8 +8,44 @@ import type {
   ResetPasswordInput,
 } from './auth.schema.js'
 import { AuthService } from './auth.service.js'
+import { env } from '../../config/env.js'
+import { UnauthorizedError } from '../../shared/errors.js'
+import { tokenExpiration } from '../../shared/token.js'
 
 const service = new AuthService()
+const REFRESH_COOKIE_NAME = 'linecourse_refresh_token'
+
+function refreshCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: env.AUTH_COOKIE_SECURE,
+    sameSite: env.AUTH_COOKIE_SAME_SITE,
+    path: '/api/auth',
+  } as const
+}
+
+function setRefreshCookie(response: Response, token: string) {
+  response.cookie(REFRESH_COOKIE_NAME, token, {
+    ...refreshCookieOptions(),
+    expires: tokenExpiration(token),
+  })
+}
+
+function clearRefreshCookie(response: Response) {
+  response.clearCookie(REFRESH_COOKIE_NAME, refreshCookieOptions())
+}
+
+function sendTokenResponse<T extends { refresh_token: string }>(
+  response: Response,
+  result: T,
+  status = 200,
+) {
+  const { refresh_token, ...data } = result
+
+  setRefreshCookie(response, refresh_token)
+
+  return sendSuccess(response, data, status)
+}
 
 function sessionContext(request: Request) {
   return {
@@ -34,26 +70,50 @@ export const AuthController = {
       request.validated?.body as LoginInput,
       sessionContext(request),
     )
-    return sendSuccess(response, result)
+    return sendTokenResponse(response, result)
   },
 
   async refresh(request: Request, response: Response) {
-    const { refresh_token } = request.validated?.body as { refresh_token: string }
-    return sendSuccess(
-      response,
-      await service.refresh(refresh_token, sessionContext(request)),
-    )
-  },
+    const refreshToken = request.cookies?.[REFRESH_COOKIE_NAME]
+    if (!refreshToken) {
+      throw new UnauthorizedError(
+        'Cookie de renouvellement absent.',
+        'INVALID_REFRESH_TOKEN',
+      )
+    }
 
+    const result = await service.refresh(
+      refreshToken,
+      sessionContext(request),
+    )
+
+    return sendTokenResponse(response, result)
+  },
   async logout(request: Request, response: Response) {
-    const { refresh_token } = request.validated?.body as { refresh_token: string }
-    await service.logout(refresh_token, sessionContext(request))
-    return sendSuccess(response, { message: 'Déconnexion effectuée.' })
+    const refreshToken = request.cookies?.[REFRESH_COOKIE_NAME]
+
+    if (refreshToken) {
+      await service.logout(refreshToken, sessionContext(request))
+    }
+
+    clearRefreshCookie(response)
+
+    return sendSuccess(response, {
+      message: 'Déconnexion effectuée.',
+    })
   },
 
   async logoutAll(request: Request, response: Response) {
-    await service.logoutAll(request.auth!.userId, sessionContext(request))
-    return sendSuccess(response, { message: 'Toutes les sessions ont été déconnectées.' })
+    await service.logoutAll(
+      request.auth!.userId,
+      sessionContext(request),
+    )
+
+    clearRefreshCookie(response)
+
+    return sendSuccess(response, {
+      message: 'Toutes les sessions ont été déconnectées.',
+    })
   },
 
   async me(request: Request, response: Response) {
@@ -66,14 +126,15 @@ export const AuthController = {
   },
 
   async changePassword(request: Request, response: Response) {
-    return sendSuccess(
-      response,
-      await service.changePassword(
-        request.auth!.userId,
-        request.validated?.body as ChangePasswordInput,
-        sessionContext(request),
-      ),
+    const result = await service.changePassword(
+      request.auth!.userId,
+      request.validated?.body as ChangePasswordInput,
+      sessionContext(request),
     )
+
+    clearRefreshCookie(response)
+
+    return sendSuccess(response, result)
   },
 
   async forgotPassword(request: Request, response: Response) {
@@ -86,13 +147,14 @@ export const AuthController = {
   },
 
   async resetPassword(request: Request, response: Response) {
-    return sendSuccess(
-      response,
-      await service.resetPassword(
-        request.validated?.body as ResetPasswordInput,
-        sessionContext(request),
-      ),
+    const result = await service.resetPassword(
+      request.validated?.body as ResetPasswordInput,
+      sessionContext(request),
     )
+
+    clearRefreshCookie(response)
+
+    return sendSuccess(response, result)
   },
 
   async resendVerification(request: Request, response: Response) {
@@ -107,17 +169,18 @@ export const AuthController = {
     const { token } = request.validated?.body as { token: string }
     return sendSuccess(response, await service.verifyEmail(token, sessionContext(request)))
   },
-
   async changeEmail(request: Request, response: Response) {
-    return sendSuccess(
-      response,
-      await service.changeEmail(
-        request.auth!.userId,
-        request.validated?.body as ChangeEmailInput,
-        sessionContext(request),
-      ),
+    const result = await service.changeEmail(
+      request.auth!.userId,
+      request.validated?.body as ChangeEmailInput,
+      sessionContext(request),
     )
+
+    clearRefreshCookie(response)
+
+    return sendSuccess(response, result)
   },
+
 
   async sessions(request: Request, response: Response) {
     return sendSuccess(
@@ -127,15 +190,21 @@ export const AuthController = {
   },
 
   async revokeSession(request: Request, response: Response) {
-    const { sessionId } = request.validated?.params as { sessionId: string }
-    return sendSuccess(
-      response,
-      await service.revokeSession(
-        request.auth!.userId,
-        sessionId,
-        sessionContext(request),
-      ),
+    const { sessionId } = request.validated?.params as {
+      sessionId: string
+    }
+
+    const result = await service.revokeSession(
+      request.auth!.userId,
+      sessionId,
+      sessionContext(request),
     )
+
+    if (sessionId === request.auth!.sessionId) {
+      clearRefreshCookie(response)
+    }
+
+    return sendSuccess(response, result)
   },
 
   async deactivateAccount(request: Request, response: Response) {
@@ -143,13 +212,15 @@ export const AuthController = {
       current_password: string
       confirmation: 'DESACTIVER'
     }
-    return sendSuccess(
-      response,
-      await service.deactivateAccount(
-        request.auth!.userId,
-        current_password,
-        sessionContext(request),
-      ),
+
+    const result = await service.deactivateAccount(
+      request.auth!.userId,
+      current_password,
+      sessionContext(request),
     )
+
+    clearRefreshCookie(response)
+
+    return sendSuccess(response, result)
   },
 }

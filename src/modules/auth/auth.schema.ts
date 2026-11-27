@@ -53,8 +53,6 @@ export const loginSchema = z.object({
   password: passwordCredentialSchema,
 })
 
-export const refreshSchema = z.object({ refresh_token: z.string().min(20).max(4096) })
-export const logoutSchema = refreshSchema
 export const forgotPasswordSchema = z.object({ email: emailSchema })
 
 export const resetPasswordSchema = z

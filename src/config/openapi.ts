@@ -111,11 +111,6 @@ export const openApiDocument = {
           password: { type: 'string', format: 'password' },
         },
       },
-      RefreshInput: {
-        type: 'object',
-        required: ['refresh_token'],
-        properties: { refresh_token: { type: 'string' } },
-      },
       ForgotPasswordInput: {
         type: 'object',
         required: ['email'],
@@ -216,10 +211,10 @@ export const openApiDocument = {
       post: {
         tags: ['Authentication'],
         operationId: 'register',
-        summary: 'Crée un compte apprenant et une première session',
+        summary: 'Crée un compte apprenant et envoie un lien de vérification',
         requestBody: body('RegisterInput'),
         responses: {
-          '201': { description: 'Compte créé' },
+          '201': { description: 'Compte créé ; aucune session avant vérification' },
           '400': error('Données invalides'),
           '409': error('Email déjà utilisé'),
           '429': error('Trop de tentatives'),
@@ -243,8 +238,7 @@ export const openApiDocument = {
       post: {
         tags: ['Authentication'],
         operationId: 'refresh',
-        summary: 'Effectue la rotation du refresh token',
-        requestBody: body('RefreshInput'),
+        summary: 'Effectue la rotation du refresh token HttpOnly envoyé par cookie',
         responses: {
           '200': { description: 'Nouvelle paire de jetons' },
           '401': error('Jeton invalide, expiré ou réutilisé'),
@@ -255,8 +249,7 @@ export const openApiDocument = {
       post: {
         tags: ['Authentication'],
         operationId: 'logout',
-        summary: 'Révoque la session du refresh token',
-        requestBody: body('RefreshInput'),
+        summary: 'Révoque la session du refresh token HttpOnly envoyé par cookie',
         responses: { '200': { description: 'Déconnexion idempotente' } },
       },
     },

@@ -12,8 +12,6 @@ import {
   deactivateAccountSchema,
   forgotPasswordSchema,
   loginSchema,
-  logoutSchema,
-  refreshSchema,
   registerSchema,
   resetPasswordSchema,
   sessionParamsSchema,
@@ -56,8 +54,8 @@ authRouter.post(
   validateBody(loginSchema),
   asyncHandler(AuthController.login),
 )
-authRouter.post('/refresh', validateBody(refreshSchema), asyncHandler(AuthController.refresh))
-authRouter.post('/logout', validateBody(logoutSchema), asyncHandler(AuthController.logout))
+authRouter.post('/refresh', asyncHandler(AuthController.refresh))
+authRouter.post('/logout', asyncHandler(AuthController.logout))
 authRouter.post(
   '/forgot-password',
   recoveryLimiter,
