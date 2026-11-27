@@ -1,5 +1,4 @@
-
-import { response, type Request, type Response } from 'express'
+import type { Request, Response } from 'express'
 import { sendSuccess } from '../../shared/api-response.js'
 import { CourseService } from './courses.services.js'
 
@@ -91,6 +90,7 @@ export const CourseController = {
     page:number
     per_page:number
   }
+  
 
   const result = await service.list({
     page: query.page,
@@ -98,5 +98,10 @@ export const CourseController = {
   })
     return sendSuccess(response, result.courses, 200, result.pagination)
   
-}
+},
+async publicShow(request: Request, response: Response) {
+  const course = await service.getPublicById(getCourseId(request))
+
+  return sendSuccess(response, course)
+},
 }

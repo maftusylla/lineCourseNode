@@ -35,6 +35,7 @@ export interface ICourseRepository {
   softDelete(course: Course): Promise<void>
   publish(course: Course): Promise<Course>
   list(input: ListCoursesInput): Promise<{ rows: Course[]; count: number }>
+  findPublishedById(id: string): Promise<Course | null>
 }
 
 export class CourseRepository implements ICourseRepository {
@@ -94,4 +95,24 @@ export class CourseRepository implements ICourseRepository {
     distinct: true,
     })
   }
+async findPublishedById(id: string): Promise<Course | null> {
+  return Course.findOne({
+    where: {
+      id,
+      status: 'published',
+    },
+    include: [
+      {
+        model: Module,
+        as: 'modules',
+        include: [
+          {
+            model: Lesson,
+            as: 'lessons',
+          },
+        ],
+      },
+    ],
+  })
+}
 }

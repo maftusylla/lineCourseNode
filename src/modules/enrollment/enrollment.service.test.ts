@@ -172,7 +172,9 @@ describe('EnrollmentService', () => {
     const course = repository.addCourse('teacher-1', 'published')
     await service.enroll('learner-1', course.id)
 
-    await expect(service.getEnrollments(course.id)).resolves.toHaveLength(1)
+    await expect(
+      service.getEnrollments(course.id, 'teacher-1', 'teacher'),
+    ).resolves.toHaveLength(1)
   })
 
   it('crée puis met à jour la progression d’une leçon', async () => {
@@ -237,7 +239,7 @@ describe('EnrollmentService', () => {
     const course = repository.addCourse('teacher-1', 'published')
     const learner = repository.addUser('learner')
 
-    const enrollment = await service.enrollLearner(course.id, learner.id)
+    const enrollment = await service.enrollLearner(course.id, learner.id,'admin-1','admin')
 
     expect(enrollment).toMatchObject({ userId: learner.id, courseId: course.id })
   })
@@ -246,24 +248,56 @@ describe('EnrollmentService', () => {
     const course = repository.addCourse('teacher-1', 'published')
     const teacher = repository.addUser('teacher')
 
-    await expect(service.enrollLearner(randomUUID(), randomUUID())).rejects.toMatchObject({
-      status: 404,
-    })
-    await expect(service.enrollLearner(course.id, randomUUID())).rejects.toMatchObject({
-      status: 404,
-    })
-    await expect(service.enrollLearner(course.id, teacher.id)).rejects.toMatchObject({
-      status: 409,
-    })
+    await expect(
+      service.enrollLearner(randomUUID(), randomUUID(), 'admin-1', 'admin'),
+    ).rejects.toMatchObject({ status: 404 })
+    await expect(
+      service.enrollLearner(course.id, randomUUID(), 'admin-1', 'admin'),
+    ).rejects.toMatchObject({ status: 404 })
+    await expect(
+      service.enrollLearner(course.id, teacher.id, 'admin-1', 'admin'),
+    ).rejects.toMatchObject({ status: 409 })
   })
 
   it('refuse une double inscription administrative', async () => {
     const course = repository.addCourse('teacher-1', 'published')
     const learner = repository.addUser('learner')
-    await service.enrollLearner(course.id, learner.id)
-
-    await expect(service.enrollLearner(course.id, learner.id)).rejects.toMatchObject({
-      status: 409,
-    })
+    await service.enrollLearner(course.id, learner.id, 'admin-1', 'admin')
+    await expect(
+      service.enrollLearner(course.id, learner.id, 'admin-1', 'admin'),
+    ).rejects.toMatchObject({ status: 409 })
   })
+
+it('refuse l’inscription à une formation non publiée', async () => {
+  const course = repository.addCourse('teacher-1', 'draft')
+
+  await expect(
+    service.enroll('learner-1', course.id),
+  ).rejects.toMatchObject({
+    status: 409,
+  })
+})
+
+it('empêche un enseignant de gérer les inscriptions d’un autre enseignant', async () => {
+  const course = repository.addCourse('teacher-1', 'published')
+  const learner = repository.addUser('learner')
+
+  await expect(
+    service.getEnrollments(course.id, 'teacher-2', 'teacher'),
+  ).rejects.toMatchObject({
+    status: 403,
+  })
+
+  await expect(
+    service.enrollLearner(
+      course.id,
+      learner.id,
+      'teacher-2',
+      'teacher',
+    ),
+  ).rejects.toMatchObject({
+    status: 403,
+  })
+})
+
 })

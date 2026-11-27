@@ -13,6 +13,11 @@ coursesRouter.get(
   validateQuery(listCoursesSchema),
   asyncHandler(CourseController.publicIndex),
 )
+coursesRouter.get(
+  '/public/:id',
+  validateParams(courseIdSchema),
+  asyncHandler(CourseController.publicShow),
+)
 coursesRouter.use(authenticate, requireVerifiedEmail)
 
 coursesRouter.get(

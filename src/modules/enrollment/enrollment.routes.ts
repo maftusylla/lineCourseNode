@@ -12,7 +12,6 @@ const router = Router()
 router.post(
   '/courses/:courseId/enroll',
   authenticate,
-  requireVerifiedEmail,
   authorize('learner'),
   validateParams(enrollmentCourseIdSchema),
   asyncHandler(EnrollmentController.enroll),
@@ -21,7 +20,6 @@ router.post(
 router.get(
   '/courses/:courseId/enrollments',
   authenticate,
-  requireVerifiedEmail,
   authorize('admin', 'teacher'),
   validateParams(enrollmentCourseIdSchema),
   asyncHandler(EnrollmentController.index),
@@ -29,7 +27,6 @@ router.get(
 router.put(
   '/enrollments/:enrollmentId/lessons/:lessonId/progress',
   authenticate,
-  requireVerifiedEmail,
   authorize('learner'),
   validateParams(updateLessonProgressParamsSchema),
   validateBody(updateLessonProgressBodySchema),
@@ -38,7 +35,6 @@ router.put(
 router.post(
   '/courses/:courseId/enrollments',
   authenticate,
-  requireVerifiedEmail,
   authorize('admin', 'teacher'),
   validateParams(enrollmentCourseIdSchema),
   validateBody(enrollLearnerBodySchema),
@@ -47,7 +43,6 @@ router.post(
 router.get(
   '/enrollments/me',
   authenticate,
-  requireVerifiedEmail,
   authorize('learner'),
   asyncHandler(EnrollmentController.getMyEnrollments)
 

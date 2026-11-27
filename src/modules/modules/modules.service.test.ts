@@ -40,6 +40,14 @@ class InMemoryCourseRepository implements ICourseRepository {
     return this.courses.get(id) ?? null
   }
 
+  async findPublishedById(id: string): Promise<Course | null> {
+    const course = [...this.courses.values()].find(
+      (course) => course.id === id && course.status === 'published',
+    )
+
+    return course ?? null
+  }
+
   async create(data: { titre: string; description: string; userId: string }) {
     const course = Course.build({ id: randomUUID(), ...data }, { isNewRecord: false })
     this.courses.set(course.id, course)

@@ -114,4 +114,13 @@ export class CourseService {
 
     return this.courses.publish(course)
   }
+  async getPublicById(id: string) {
+  const course = await this.courses.findPublishedById(id)
+
+  if (!course) {
+    throw new NotFoundError('Formation introuvable.')
+  }
+
+  return course
+}
 }

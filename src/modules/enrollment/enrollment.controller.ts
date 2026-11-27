@@ -2,6 +2,9 @@ import type { Request,Response } from 'express'
 import { EnrollmentService } from './enrollment.service.js'
 import { sendSuccess } from '../../shared/api-response.js'
 
+
+const service = new EnrollmentService()
+
 const getCourseId = (request: Request): string => {
   return (request.validated!.params as { courseId: string }).courseId
 }
@@ -11,69 +14,61 @@ export class EnrollmentController {
     const courseId = getCourseId(request)
     const userId = request.auth!.userId
 
-    const enrollment = await new EnrollmentService().enroll(userId, courseId)
+    const enrollment = await service.enroll(userId, courseId)
 
-    sendSuccess(response, enrollment, 201)
+   return sendSuccess(response, enrollment, 201)
   }
 
   static readonly index = async (request: Request, response: Response) => {
     const courseId = getCourseId(request)
+    const {userId,role} =request.auth!
 
-    const enrollments = await new EnrollmentService().getEnrollments(courseId)
+    const enrollments = await  service.getEnrollments(courseId,userId,role)
 
-    sendSuccess(response, enrollments)
+   return sendSuccess(response, enrollments)
   }
 
   static readonly updateProgress = async (request: Request, response: Response) => {
-  const enrollmentId = (
+  const {enrollmentId ,lessonId} = (
     request.validated!.params as {
       enrollmentId: string
       lessonId: string
     }
-  ).enrollmentId
+  )
 
-  const lessonId = (
-    request.validated!.params as {
-      enrollmentId: string
-      lessonId: string
-    }
-  ).lessonId
-
-  const userId = request.auth!.userId
-
-  const { progress } = request.validated!.body as {
-    progress: number
+  const { progress }=request.validated!.body as {
+    progress:number
   }
-
-  const result = await new EnrollmentService().updateLessonProgress(
-    userId,
+  const result = await service.updateLessonProgress(
+    request.auth!.userId,
     enrollmentId,
     lessonId,
     progress,
   )
-
-  sendSuccess(response, result)
+  return sendSuccess(response,result)
 }
 static readonly enrollLearner = async (request: Request,response: Response) => {
   const courseId = getCourseId(request)
 
-  const { userId } = request.validated!.body as {
+  const { userId:learnerId} = request.validated!.body as {
     userId: string
   }
+  const { userId: actorId, role } = request.auth!
 
-  const enrollment = await new EnrollmentService().enrollLearner(
+  const enrollment = await service.enrollLearner(
     courseId,
-    userId,
+    learnerId,
+    actorId,
+    role,
   )
 
-  sendSuccess(response, enrollment, 201)
+ return  sendSuccess(response, enrollment, 201)
 }
   static readonly getMyEnrollments=async(request:Request,response:Response)=>{
     const userId =request.auth!.userId
-    const enrollments=await new EnrollmentService().getMyEnrollments(userId)
-  sendSuccess(response, enrollments, 201)
+    const enrollments=await service.getMyEnrollments(userId)
+  sendSuccess(response, enrollments, 200)
 
 }
-
 
 }

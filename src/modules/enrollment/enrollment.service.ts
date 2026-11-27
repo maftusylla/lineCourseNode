@@ -1,18 +1,34 @@
 
 import { EnrollmentRepository } from './enrollment.repository.js'
 import { ConflictError,ForbiddenError,NotFoundError} from '../../shared/errors.js'
+import type { UserRole } from '../users/user.model.js'
+import type { Course } from '../courses/courses.model.js'
 
 export class EnrollmentService {
   constructor(
     private readonly enrollmentRepository = new EnrollmentRepository(),
   ) {}
 
+  private checkPublishedCourse(course:Course){
+    if(course.status !=='published'){
+      throw new ConflictError('Cette formation n \'est pas ouverte aux inscriptions')
+    }
+  }
+  private checkCourseManagement(course: Course,actorId: string,actorRole: UserRole){
+    if(actorRole==='admin') return
+    if(actorRole !== 'teacher' || course.userId !==actorId){
+            throw new ForbiddenError(  'Vous ne pouvez gérer que les inscriptions de vos propres formations.')
+
+    }
+
+  }
   async enroll(userId: string, courseId: string) {
     const course = await this.enrollmentRepository.findCourseById(courseId)
 
     if (!course) {
       throw new NotFoundError('Cours introuvable.')
     }
+    this.checkPublishedCourse(course)
 
     const existingEnrollment =
       await this.enrollmentRepository.findByUserAndCourse(userId, courseId)
@@ -24,12 +40,13 @@ export class EnrollmentService {
     return this.enrollmentRepository.create(userId, courseId)
   }
 
-  async getEnrollments(courseId: string) {
+  async getEnrollments(courseId: string,actorId:string, actorRole:UserRole) {
     const course = await this.enrollmentRepository.findCourseById(courseId)
 
     if (!course) {
       throw new NotFoundError('Cours introuvable.')
     }
+    this.checkCourseManagement(course,actorId,actorRole)
 
     return this.enrollmentRepository.findByCourse(courseId)
   }
@@ -88,34 +105,43 @@ export class EnrollmentService {
       progress,
     )
   }
-  async enrollLearner(courseId: string, userId: string) {
+  async enrollLearner(courseId: string, learnerId: string,actorId:string,actorRole:UserRole) {
   const course = await this.enrollmentRepository.findCourseById(courseId)
 
   if (!course) {
     throw new NotFoundError('Cours introuvable.')
   }
+    this.checkPublishedCourse(course)
+    this.checkCourseManagement(course, actorId, actorRole)
 
-  const user = await this.enrollmentRepository.findUserById(userId)
 
-  if (!user) {
+  const learner = await this.enrollmentRepository.findUserById(learnerId)
+
+  if (!learner) {
     throw new NotFoundError('Utilisateur introuvable.')
   }
 
-  if (user.role !== 'learner') {
-    throw new ConflictError('Cet utilisateur n’est pas un apprenant.')
+  if (learner.role !== 'learner') {
+    throw new ConflictError('Seul un apprenant peut s\'inscrire à cette formation.')
   }
+  if (!learner.isActive) {
+      throw new ForbiddenError('Ce compte utilisateur est désactivé.')
+    }
+
+   
 
   const existingEnrollment =
-    await this.enrollmentRepository.findByUserAndCourse(userId, courseId)
+    await this.enrollmentRepository.findByUserAndCourse(learnerId, courseId)
 
   if (existingEnrollment) {
     throw new ConflictError('Cet apprenant est déjà inscrit à ce cours.')
   }
 
-  return this.enrollmentRepository.create(userId, courseId)
+  return this.enrollmentRepository.create(learnerId, courseId)
 }
 
   async getMyEnrollments(userId: string){
     return this.enrollmentRepository.findByUser(userId)
   }
+
 }
